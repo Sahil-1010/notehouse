@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Lock, User, ArrowRight, Home } from 'lucide-react';
+import { Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ username: '', password: '', confirm: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -36,45 +38,82 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-md relative z-10 animate-slide-up">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 animate-float"
-            style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(245,158,11,0.12))', border: '1px solid rgba(139,92,246,0.3)' }}>
-            <Home className="w-7 h-7 text-violet-400" strokeWidth={1.5} />
-          </div>
-          <h1 className="font-display text-4xl font-bold text-gradient tracking-tight">NoteHouse</h1>
+          <img src="/logo.png" alt="Sticky Notes" className="w-20 h-20 rounded-2xl mb-1 animate-float object-cover mx-auto block" />
+          <h1 className="font-display text-4xl font-bold text-gradient tracking-tight">Sticky Notes</h1>
           <p className="text-slate-500 mt-1.5 text-sm">Create your account</p>
         </div>
 
         <div className="glass rounded-2xl p-8 glow-violet">
-          <h2 className="font-display text-xl font-semibold text-white mb-6">Get started</h2>
-          <form onSubmit={handle} className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Username</label>
+          <h2 className="font-display text-xl font-semibold text-white mb-7">Get started</h2>
+
+          <form onSubmit={handle} className="space-y-5">
+            {/* Username */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block">Username</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                <input className="input-field pl-10" placeholder="choose_username" value={form.username}
-                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required autoFocus minLength={3} />
+                <input
+                  className="input-field pl-10"
+                  placeholder="choose_username"
+                  value={form.username}
+                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                  required
+                  autoFocus
+                  minLength={3}
+                />
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Password</label>
+            {/* Password */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                <input className="input-field pl-10" type="password" placeholder="min 6 characters" value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required minLength={6} />
+                <input
+                  className="input-field pl-10 pr-11"
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="min 6 characters"
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/8 transition-all"
+                  tabIndex={-1}
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Confirm Password</label>
+            {/* Confirm password */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                <input className="input-field pl-10" type="password" placeholder="repeat password" value={form.confirm}
-                  onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} required />
+                <input
+                  className="input-field pl-10 pr-11"
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="repeat password"
+                  value={form.confirm}
+                  onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/8 transition-all"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+            <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
               {loading
                 ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 : <><span>Create account</span><ArrowRight className="w-4 h-4" /></>}

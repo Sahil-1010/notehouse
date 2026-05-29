@@ -14,6 +14,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('nh_token');
       localStorage.removeItem('nh_user');
+      localStorage.removeItem('nh_room');
       window.location.href = '/login';
     }
     return Promise.reject(err);
@@ -21,30 +22,36 @@ api.interceptors.response.use(
 );
 
 export const auth = {
-  login: d => api.post('/auth/login', d),
+  login:    d => api.post('/auth/login', d),
   register: d => api.post('/auth/register', d),
-  me: () => api.get('/auth/me'),
+  me:       () => api.get('/auth/me'),
+};
+
+export const roomsApi = {
+  create: d  => api.post('/rooms', d),
+  join:   code => api.get(`/rooms/${code}`),
 };
 
 export const collectionsApi = {
-  list: () => api.get('/collections'),
-  create: d => api.post('/collections', d),
-  get: id => api.get(`/collections/${id}`),
-  update: (id, d) => api.put(`/collections/${id}`, d),
-  delete: (id, password) => api.delete(`/collections/${id}`, { data: { password } }),
-  count: (id, action) => api.post(`/collections/${id}/count`, { action }),
-  addNote: (id, d) => api.post(`/collections/${id}/notes`, d),
-  updateNote: (id, noteId, d) => api.put(`/collections/${id}/notes/${noteId}`, d),
-  deleteNote: (id, noteId) => api.delete(`/collections/${id}/notes/${noteId}`),
-  addDate: (id, d) => api.post(`/collections/${id}/dates`, d),
-  deleteDate: (id, dateId) => api.delete(`/collections/${id}/dates/${dateId}`),
-  createPoll: (id, d) => api.post(`/collections/${id}/polls`, d),
-  vote: (id, pollId, optionId) => api.post(`/collections/${id}/polls/${pollId}/vote`, { optionId }),
-  deletePoll: (id, pollId) => api.delete(`/collections/${id}/polls/${pollId}`),
+  list:       roomId      => api.get('/collections', { params: { roomId } }),
+  create:     (roomId, d) => api.post('/collections', { ...d, roomId }),
+  get:        id          => api.get(`/collections/${id}`),
+  update:     (id, d)     => api.put(`/collections/${id}`, d),
+  delete:     (id, roomCode, password) => api.delete(`/collections/${id}`, { data: { roomCode, password } }),
+  count:      (id, action)             => api.post(`/collections/${id}/count`, { action }),
+  addNote:    (id, d)                  => api.post(`/collections/${id}/notes`, d),
+  updateNote: (id, noteId, d)          => api.put(`/collections/${id}/notes/${noteId}`, d),
+  deleteNote: (id, noteId)             => api.delete(`/collections/${id}/notes/${noteId}`),
+  addDate:    (id, d)                  => api.post(`/collections/${id}/dates`, d),
+  deleteDate: (id, dateId)             => api.delete(`/collections/${id}/dates/${dateId}`),
+  createPoll: (id, d)                  => api.post(`/collections/${id}/polls`, d),
+  vote:       (id, pollId, optionId)   => api.post(`/collections/${id}/polls/${pollId}/vote`, { optionId }),
+  deletePoll: (id, pollId)             => api.delete(`/collections/${id}/polls/${pollId}`),
 };
 
 export const logsApi = {
-  list: params => api.get('/logs', { params }),
+  list:  (roomId, params) => api.get('/logs', { params: { roomId, ...params } }),
+  clean: (roomCode, password) => api.delete('/logs/clean', { data: { roomCode, password } }),
 };
 
 export default api;

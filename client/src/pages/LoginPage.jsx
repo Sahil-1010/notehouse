@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Lock, User, ArrowRight, Home } from 'lucide-react';
+import { Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' });
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -35,36 +36,56 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md relative z-10 animate-slide-up">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 animate-float"
-            style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.12))', border: '1px solid rgba(139,92,246,0.3)' }}>
-            <Home className="w-7 h-7 text-violet-400" strokeWidth={1.5} />
-          </div>
-          <h1 className="font-display text-4xl font-bold text-gradient tracking-tight">NoteHouse</h1>
+          <img src="/logo.png" alt="Sticky Notes" className="w-20 h-20 rounded-2xl mb-1 animate-float object-cover mx-auto block" />
+          <h1 className="font-display text-4xl font-bold text-gradient tracking-tight">Sticky Notes</h1>
           <p className="text-slate-500 mt-1.5 text-sm">Your household tracker</p>
         </div>
 
         <div className="glass rounded-2xl p-8 glow-violet">
-          <h2 className="font-display text-xl font-semibold text-white mb-6">Sign in</h2>
-          <form onSubmit={handle} className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Username</label>
+          <h2 className="font-display text-xl font-semibold text-white mb-7">Sign in</h2>
+
+          <form onSubmit={handle} className="space-y-5">
+            {/* Username */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block">Username</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                <input className="input-field pl-10" placeholder="your_username" value={form.username}
-                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required autoFocus />
+                <input
+                  className="input-field pl-10"
+                  placeholder="your_username"
+                  value={form.username}
+                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                  required
+                  autoFocus
+                />
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Password</label>
+            {/* Password */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                <input className="input-field pl-10" type="password" placeholder="••••••••" value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+                <input
+                  className="input-field pl-10 pr-11"
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/8 transition-all"
+                  tabIndex={-1}
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+            <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
               {loading
                 ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 : <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>}

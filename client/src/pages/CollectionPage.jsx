@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { collectionsApi } from '../api';
+import { useRoom } from '../context/RoomContext';
 import toast from 'react-hot-toast';
 import Modal from '../components/ui/Modal';
 import CountCollection from '../components/collections/CountCollection';
@@ -19,6 +20,7 @@ const TYPE_CFG = {
 export default function CollectionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { room } = useRoom();
   const [col, setCol] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -43,7 +45,7 @@ export default function CollectionPage() {
     e.preventDefault();
     setDeleting(true);
     try {
-      await collectionsApi.delete(id, deletePass);
+      await collectionsApi.delete(id, room.code, deletePass);
       toast.success(`"${col.name}" deleted`);
       navigate('/');
     } catch (err) {
@@ -130,7 +132,7 @@ export default function CollectionPage() {
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Confirmation Password</label>
-            <input className="input-field" type="password" placeholder="Enter admin password"
+            <input className="input-field" type="password" placeholder="Enter room password"
               value={deletePass} onChange={e => setDeletePass(e.target.value)} required autoFocus />
           </div>
           <div className="flex gap-3">

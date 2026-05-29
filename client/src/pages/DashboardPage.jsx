@@ -1,18 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collectionsApi } from '../api';
+import { useRoom } from '../context/RoomContext';
 import CollectionCard from '../components/layout/CollectionCard';
 import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 import { Plus, Search, Hash, FileText, CalendarDays, BarChart2, X } from 'lucide-react';
 
 const TYPES = [
-  { key: 'count', label: 'Count', icon: Hash, desc: 'Track increments and decrements', color: '#8b5cf6' },
-  { key: 'note', label: 'Note', icon: FileText, desc: 'Sticky note cards', color: '#f59e0b' },
-  { key: 'date', label: 'Date', icon: CalendarDays, desc: 'Important dates & countdowns', color: '#06b6d4' },
-  { key: 'poll', label: 'Poll', icon: BarChart2, desc: 'Polls and voting', color: '#10b981' },
+  { key: 'count', label: 'Count',  icon: Hash,        desc: 'Track increments and decrements', color: '#8b5cf6' },
+  { key: 'note',  label: 'Note',   icon: FileText,     desc: 'Sticky note cards',               color: '#f59e0b' },
+  { key: 'date',  label: 'Date',   icon: CalendarDays, desc: 'Important dates & countdowns',    color: '#06b6d4' },
+  { key: 'poll',  label: 'Poll',   icon: BarChart2,    desc: 'Polls and voting',                color: '#10b981' },
 ];
 
 export default function DashboardPage() {
+  const { room } = useRoom();
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -21,8 +23,9 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
 
   const fetchCollections = async () => {
+    if (!room) return;
     try {
-      const res = await collectionsApi.list();
+      const res = await collectionsApi.list(room.id);
       setCollections(res.data);
     } catch {
       toast.error('Failed to load collections');
@@ -31,7 +34,7 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => { fetchCollections(); }, []);
+  useEffect(() => { fetchCollections(); }, [room?.id]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return collections;
@@ -39,7 +42,7 @@ export default function DashboardPage() {
     return collections.filter(c => c.name.toLowerCase().includes(q));
   }, [collections, search]);
 
-  const pinned = filtered.filter(c => c.pinned);
+  const pinned   = filtered.filter(c => c.pinned);
   const unpinned = filtered.filter(c => !c.pinned);
 
   const handleCreate = async e => {
@@ -47,7 +50,7 @@ export default function DashboardPage() {
     if (!form.name.trim()) return toast.error('Name required');
     setCreating(true);
     try {
-      const res = await collectionsApi.create({ name: form.name.trim(), type: form.type });
+      const res = await collectionsApi.create(room.id, { name: form.name.trim(), type: form.type });
       setCollections(prev => [...prev, { ...res.data, preview: getDefaultPreview(res.data.type) }]);
       setCreateOpen(false);
       setForm({ name: '', type: 'count' });
@@ -74,8 +77,11 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{collections.length} collection{collections.length !== 1 ? 's' : ''}</p>
+          <h1 className="font-display text-2xl font-bold text-white">{room?.name}</h1>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {collections.length} collection{collections.length !== 1 ? 's' : ''}
+            <span className="ml-2 text-slate-700">· #{room?.code}</span>
+          </p>
         </div>
 
         <div className="relative">
@@ -200,8 +206,8 @@ export default function DashboardPage() {
 
 function getDefaultPreview(type) {
   if (type === 'count') return { value: 0 };
-  if (type === 'note') return { count: 0 };
-  if (type === 'date') return { nextEvent: null };
-  if (type === 'poll') return { pollCount: 0 };
+  if (type === 'note')  return { count: 0 };
+  if (type === 'date')  return { nextEvent: null };
+  if (type === 'poll')  return { pollCount: 0 };
   return {};
 }

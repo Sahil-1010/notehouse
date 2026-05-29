@@ -101,15 +101,40 @@
   }
   .btn-danger:hover { background: rgba(239,68,68,0.18); box-shadow: 0 0 18px rgba(239,68,68,0.15); }
 
-  /* Inputs */
+  /* Inputs — intentionally empty here; defined in @layer components below
+     so that utility classes like pl-10 always override the base padding */
+
+  /* Badges */
+  .badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium; }
+  .badge-count { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
+  .badge-note { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.22); }
+  .badge-date { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.22); }
+  .badge-poll { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.22); }
+}
+
+/* ─── Input / Textarea — in @layer components so utility classes always win ── */
+@layer components {
   .input-field {
     @apply w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     color: #f1f5f9;
   }
-  .input-field:focus { border-color: rgba(139,92,246,0.55); box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+  .input-field:focus {
+    border-color: rgba(139,92,246,0.55);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+  }
   .input-field::placeholder { color: #334155; }
+  /* Keep dark bg on browser autofill so icons stay visible */
+  .input-field:-webkit-autofill,
+  .input-field:-webkit-autofill:hover,
+  .input-field:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #0d0c1f inset !important;
+    box-shadow: 0 0 0 1000px #0d0c1f inset !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    caret-color: #f1f5f9;
+  }
 
   .textarea-field {
     @apply w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 resize-none;
@@ -118,15 +143,11 @@
     color: #f1f5f9;
     line-height: 1.6;
   }
-  .textarea-field:focus { border-color: rgba(139,92,246,0.55); box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+  .textarea-field:focus {
+    border-color: rgba(139,92,246,0.55);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+  }
   .textarea-field::placeholder { color: #334155; }
-
-  /* Badges */
-  .badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium; }
-  .badge-count { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
-  .badge-note { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.22); }
-  .badge-date { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.22); }
-  .badge-poll { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.22); }
 }
 
 /* Note card color variants */

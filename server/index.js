@@ -1,9 +1,11 @@
+
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./db/database');
 
 const authRoutes = require('./routes/auth');
+const roomsRoutes = require('./routes/rooms');
 const collectionsRoutes = require('./routes/collections');
 const logsRoutes = require('./routes/logs');
 
@@ -14,6 +16,7 @@ app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'], crede
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomsRoutes);
 app.use('/api/collections', collectionsRoutes);
 app.use('/api/logs', logsRoutes);
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));

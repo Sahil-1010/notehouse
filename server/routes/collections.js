@@ -1,11 +1,9 @@
 const express = require('express');
-const { Collection, Note, DateEvent, Poll, addLog } = require('../db/database');
+const { Collection, Note, DateEvent, Poll, addLog, verifyRoomPassword } = require('../db/database');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 router.use(authMiddleware);
-
-const DELETE_PASSWORD = 'IamChutiya@69';
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
@@ -15,6 +13,7 @@ function fmtCol(col) {
     name:       col.name,
     type:       col.type,
     pinned:     col.pinned ? 1 : 0,
+    roomId:     col.roomId?.toString(),
     created_at: col.created_at,
   };
 }
@@ -49,7 +48,10 @@ function fmtPoll(poll, userId) {
 
 router.get('/', async (req, res) => {
   try {
-    const cols = await Collection.find().sort({ pinned: -1, created_at: 1 }).lean();
+    const { roomId } = req.query;
+    if (!roomId) return res.status(400).json({ error: 'roomId required' });
+
+    const cols = await Collection.find({ roomId }).sort({ pinned: -1, created_at: 1 }).lean();
     const today = new Date().toISOString().slice(0, 10);
 
     const results = await Promise.all(cols.map(async col => {
@@ -79,12 +81,13 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, type } = req.body;
+    const { name, type, roomId } = req.body;
     if (!name?.trim() || !type) return res.status(400).json({ error: 'Name and type required' });
+    if (!roomId) return res.status(400).json({ error: 'roomId required' });
     if (!['count', 'note', 'date', 'poll'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
 
-    const col = await Collection.create({ name: name.trim(), type, created_by: req.user.id, count_value: 0 });
-    addLog({ userId: req.user.id, username: req.user.username, action: `created collection "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.create({ name: name.trim(), type, roomId, created_by: req.user.id, count_value: 0 });
+    addLog({ roomId, userId: req.user.id, username: req.user.username, action: `created collection "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json({ ...fmtCol(col), preview: getDefaultPreview(type) });
   } catch (err) {
@@ -126,11 +129,11 @@ router.put('/:id', async (req, res) => {
 
     if (name !== undefined) {
       col.name = name.trim();
-      addLog({ userId: req.user.id, username: req.user.username, action: `renamed collection to "${name.trim()}"`, collectionId: col._id, collectionName: name.trim() });
+      addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `renamed collection to "${name.trim()}"`, collectionId: col._id, collectionName: name.trim() });
     }
     if (pinned !== undefined) {
       col.pinned = !!pinned;
-      addLog({ userId: req.user.id, username: req.user.username, action: `${pinned ? 'pinned' : 'unpinned'} "${col.name}"`, collectionId: col._id, collectionName: col.name });
+      addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `${pinned ? 'pinned' : 'unpinned'} "${col.name}"`, collectionId: col._id, collectionName: col.name });
     }
     await col.save();
     res.json({ success: true });
@@ -141,8 +144,9 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const { password } = req.body;
-    if (password !== DELETE_PASSWORD) return res.status(403).json({ error: 'Incorrect password' });
+    const { roomCode, password } = req.body;
+    const { ok, error } = await verifyRoomPassword(roomCode, password);
+    if (!ok) return res.status(403).json({ error });
 
     const col = await Collection.findById(req.params.id);
     if (!col) return res.status(404).json({ error: 'Collection not found' });
@@ -152,7 +156,7 @@ router.delete('/:id', async (req, res) => {
     await Poll.deleteMany({ collection_id: col._id });
     await col.deleteOne();
 
-    addLog({ userId: req.user.id, username: req.user.username, action: `deleted collection "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `deleted collection "${col.name}"`, collectionId: col._id, collectionName: col.name });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -173,7 +177,7 @@ router.post('/:id/count', async (req, res) => {
     col.count_last_updated = new Date();
     await col.save();
 
-    addLog({ userId: req.user.id, username: req.user.username, action: `${action === 'increment' ? 'incremented' : 'decremented'} "${col.name}" → ${col.count_value}`, collectionId: col._id, collectionName: col.name });
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `${action === 'increment' ? 'incremented' : 'decremented'} "${col.name}" → ${col.count_value}`, collectionId: col._id, collectionName: col.name });
     res.json({ value: col.count_value });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -191,7 +195,7 @@ router.post('/:id/notes', async (req, res) => {
     if (!col) return res.status(404).json({ error: 'Note collection not found' });
 
     const note = await Note.create({ collection_id: col._id, content: content.trim(), color: color || 'violet', created_by: req.user.id });
-    addLog({ userId: req.user.id, username: req.user.username, action: `added note to "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `added note to "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json(fmtNote(note.toObject()));
   } catch (err) {
@@ -210,8 +214,8 @@ router.put('/:id/notes/:noteId', async (req, res) => {
     note.updated_at = new Date();
     await note.save();
 
-    const col = await Collection.findById(req.params.id, 'name');
-    addLog({ userId: req.user.id, username: req.user.username, action: `edited note in "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.findById(req.params.id, 'name roomId');
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `edited note in "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json(fmtNote(note.toObject()));
   } catch (err) {
@@ -225,8 +229,8 @@ router.delete('/:id/notes/:noteId', async (req, res) => {
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
     await note.deleteOne();
-    const col = await Collection.findById(req.params.id, 'name');
-    addLog({ userId: req.user.id, username: req.user.username, action: `deleted note from "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.findById(req.params.id, 'name roomId');
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `deleted note from "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json({ success: true });
   } catch (err) {
@@ -245,7 +249,7 @@ router.post('/:id/dates', async (req, res) => {
     if (!col) return res.status(404).json({ error: 'Date collection not found' });
 
     const dateEvent = await DateEvent.create({ collection_id: col._id, title: title.trim(), event_date, description: description || null, created_by: req.user.id });
-    addLog({ userId: req.user.id, username: req.user.username, action: `added date "${title.trim()}" to "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `added date "${title.trim()}" to "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json(fmtDate(dateEvent.toObject()));
   } catch (err) {
@@ -259,8 +263,8 @@ router.delete('/:id/dates/:dateId', async (req, res) => {
     if (!dateEvent) return res.status(404).json({ error: 'Date not found' });
 
     await dateEvent.deleteOne();
-    const col = await Collection.findById(req.params.id, 'name');
-    addLog({ userId: req.user.id, username: req.user.username, action: `deleted date "${dateEvent.title}" from "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.findById(req.params.id, 'name roomId');
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `deleted date "${dateEvent.title}" from "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json({ success: true });
   } catch (err) {
@@ -287,7 +291,7 @@ router.post('/:id/polls', async (req, res) => {
       votes: [],
       created_by: req.user.id,
     });
-    addLog({ userId: req.user.id, username: req.user.username, action: `created poll in "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `created poll in "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json(fmtPoll(poll, req.user.id));
   } catch (err) {
@@ -310,8 +314,8 @@ router.post('/:id/polls/:pollId/vote', async (req, res) => {
     poll.votes.push({ user_id: req.user.id, option_id: option._id, voted_at: new Date() });
     await poll.save();
 
-    const col = await Collection.findById(req.params.id, 'name');
-    addLog({ userId: req.user.id, username: req.user.username, action: `voted in poll "${poll.question}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.findById(req.params.id, 'name roomId');
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `voted "${option.text}" in poll "${poll.question}"`, collectionId: col._id, collectionName: col.name });
 
     res.json(fmtPoll(poll, req.user.id));
   } catch (err) {
@@ -325,8 +329,8 @@ router.delete('/:id/polls/:pollId', async (req, res) => {
     if (!poll) return res.status(404).json({ error: 'Poll not found' });
 
     await poll.deleteOne();
-    const col = await Collection.findById(req.params.id, 'name');
-    addLog({ userId: req.user.id, username: req.user.username, action: `deleted poll from "${col.name}"`, collectionId: col._id, collectionName: col.name });
+    const col = await Collection.findById(req.params.id, 'name roomId');
+    addLog({ roomId: col.roomId, userId: req.user.id, username: req.user.username, action: `deleted poll from "${col.name}"`, collectionId: col._id, collectionName: col.name });
 
     res.json({ success: true });
   } catch (err) {
